@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using Warudo.Core.Attributes;
 using Warudo.Core.Plugins;
 
-[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.1.0", Author = "Barinzaya", Description = "Adds an OSC Input node, that allows data to be received via OSC.",
+[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.2.0", Author = "Barinzaya", Description = "Adds an On OSC Message node.",
     NodeTypes = new[] { typeof(OscInputNode) })]
 public class OscInputPlugin : Plugin {
     public const int OSC_SERVER_PORT = 19190;
