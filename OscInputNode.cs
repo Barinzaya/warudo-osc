@@ -17,33 +17,37 @@ public class OscInputNode : Node {
 
     protected override void OnCreate() {
         base.OnCreate();
-        Plugin.ReceivedOscMessage += OnReceivedOscMessage;
 
         ConfigureOutputs();
         Watch(nameof(ArgumentTypes), () => ConfigureOutputs());
+
+        Plugin?.AddHandler(Address, OnReceivedOscMessage);
+        Watch<string>(nameof(Address), (oldAddress, newAddress) => {
+            Plugin?.RemoveHandler(oldAddress, OnReceivedOscMessage);
+            Plugin?.AddHandler(newAddress, OnReceivedOscMessage);
+        });
     }
 
     protected override void OnDestroy() {
-        Plugin.ReceivedOscMessage -= OnReceivedOscMessage;
+        Plugin?.RemoveHandler(Address, OnReceivedOscMessage);
         base.OnDestroy();
     }
 
     protected void OnReceivedOscMessage(OscMessage message) {
-        if (message.Address == Address) {
-            var numArgs = Math.Min(message.Arguments.Count, values.Length);
+        var numArgs = Math.Min(message.Arguments.Count, values.Length);
 
-            for (var i = 0; i < numArgs; i++) {
-                var oldValue = values[i];
-                var newValue = message.Arguments[i];
+        for (var i = 0; i < numArgs; i++) {
+            var oldValue = values[i];
+            var newValue = message.Arguments[i];
 
-                if (newValue.GetType() == oldValue.GetType()) {
-                    values[i] = newValue;
-                }
+            if (newValue.GetType() == oldValue.GetType()) {
+                // TODO: Type coercion?
+                values[i] = newValue;
             }
-
-            Broadcast();
-            Graph?.InvokeFlow(this, "Exit");
         }
+
+        Broadcast();
+        Graph?.InvokeFlow(this, "Exit");
     }
 
     public void ConfigureOutputs() {

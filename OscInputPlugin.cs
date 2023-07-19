@@ -1,5 +1,6 @@
 using SharpOSC; // would rather use OscCore, but there is a zero-tolerance ban on System.IO and OscCore uses System.IO.MemoryStream
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Warudo.Core.Attributes;
 using Warudo.Core.Plugins;
 
@@ -8,15 +9,15 @@ using Warudo.Core.Plugins;
 public class OscInputPlugin : Plugin {
     public const int OSC_SERVER_PORT = 19190;
 
-    public delegate void OscMessageHandler(OscMessage message);
-    public event OscMessageHandler ReceivedOscMessage;
-
     private UDPListener oscListener;
-    private ConcurrentQueue<OscMessage> oscMessages = new ConcurrentQueue<OscMessage>();
+    private ConcurrentQueue<OscMessage> oscMessages = new();
+
+    public delegate void OscMessageHandler(OscMessage message);
+    private Dictionary<string, HashSet<OscMessageHandler>> handlers = new();
 
     protected override void OnCreate() {
         base.OnCreate();
-        oscListener = new UDPListener(OSC_SERVER_PORT, OnOscPacket);
+        oscListener = new(OSC_SERVER_PORT, OnOscPacket);
     }
 
     protected override void OnDestroy() {
@@ -29,7 +30,12 @@ public class OscInputPlugin : Plugin {
 
         OscMessage message;
         while(oscMessages.TryDequeue(out message)) {
-            ReceivedOscMessage?.Invoke(message);
+            HashSet<OscMessageHandler> addressHandlers;
+            if (handlers.TryGetValue(message.Address, out addressHandlers)) {
+                foreach (var handler in addressHandlers) {
+                    handler(message);
+                }
+            }
         }
     }
 
@@ -43,5 +49,30 @@ public class OscInputPlugin : Plugin {
         if (packet is OscMessage message) {
             oscMessages.Enqueue(message);
         }
+    }
+
+    public bool AddHandler(string address, OscMessageHandler action) {
+        HashSet<OscMessageHandler> addressHandlers;
+        if (!handlers.TryGetValue(address, out addressHandlers)) {
+            addressHandlers = new();
+            handlers[address] = addressHandlers;
+        }
+
+        return addressHandlers.Add(action);
+    }
+
+    public bool RemoveHandler(string address, OscMessageHandler action) {
+        HashSet<OscMessageHandler> addressHandlers;
+        if (!handlers.TryGetValue(address, out addressHandlers)) {
+            return false;
+        }
+
+        var result = addressHandlers.Remove(action);
+
+        if (result && addressHandlers.Count == 0) {
+            handlers.Remove(address);
+        }
+
+        return result;
     }
 }
