@@ -37,13 +37,43 @@ public class OscInputNode : Node {
         var numArgs = Math.Min(message.Count, values.Length);
 
         for (var i = 0; i < numArgs; i++) {
-            var oldValue = values[i];
-            var newValue = message[i];
+            var value = message[i];
 
-            if (newValue.GetType() == oldValue.GetType()) {
-                // TODO: Type coercion?
-                values[i] = newValue;
-            }
+            values[i] = ArgumentTypes[i] switch {
+                OscInputType.Boolean => value switch {
+                    bool x => x,
+                    double x => x != 0,
+                    float x => x != 0,
+                    int x => x != 0,
+                    long x => x != 0,
+                    _ => value
+                },
+
+                OscInputType.Float => value switch {
+                    bool x => x ? 1f : 0f,
+                    double x => (float)x,
+                    float x => x,
+                    int x => (float)x,
+                    long x => (float)x,
+                    _ => value
+                },
+
+                OscInputType.Int => value switch {
+                    bool x => x ? 1 : 0,
+                    double x => (int)Math.Round(x),
+                    float x => (int)Math.Round(x),
+                    int x => x,
+                    long x => (int)x,
+                    _ => value
+                },
+
+                OscInputType.String => value switch {
+                    string x => x,
+                    _ => value
+                },
+
+                _ => throw new ArgumentException("Unsupported argument type", $"ArgumentTypes[{i}]")
+            };
         }
 
         Broadcast();
