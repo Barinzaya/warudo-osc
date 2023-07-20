@@ -1,10 +1,11 @@
 using OscCore;
-using System.Collections.Concurrent;
+using OscCore.Address;
+using System;
 using System.Collections.Generic;
 using Warudo.Core.Attributes;
 using Warudo.Core.Plugins;
 
-[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.2.2", Author = "Barinzaya", Description = "Adds an On OSC Message node.",
+[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.2.3", Author = "Barinzaya", Description = "Adds an On OSC Message node.",
     NodeTypes = new[] { typeof(OscInputNode) })]
 public class OscInputPlugin : Plugin {
     public const int OSC_SERVER_PORT = 19190;
@@ -28,12 +29,7 @@ public class OscInputPlugin : Plugin {
         base.OnPreUpdate();
 
         while(listener.TryGetMessage(out var message)) {
-            HashSet<OscMessageHandler> addressHandlers;
-            if (handlers.TryGetValue(message.Address, out addressHandlers)) {
-                foreach (var handler in addressHandlers) {
-                    handler(message);
-                }
-            }
+            DispatchMessage(message);
         }
     }
 
@@ -60,5 +56,31 @@ public class OscInputPlugin : Plugin {
         }
 
         return result;
+    }
+
+    private void DispatchMessage(OscMessage message) {
+        OscAddress address;
+        try {
+            address = new(message.Address);
+        } catch (ArgumentException) {
+            return;
+        }
+
+        if(address.IsLiteral) {
+            HashSet<OscMessageHandler> addressHandlers;
+            if(handlers.TryGetValue(message.Address, out addressHandlers)) {
+                foreach (var handler in addressHandlers) {
+                    handler(message);
+                }
+            }
+        } else {
+            foreach(var pair in handlers) {
+                if (address.Match(pair.Key)) {
+                    foreach (var handler in pair.Value) {
+                        handler(message);
+                    }
+                }
+            }
+        }
     }
 }
