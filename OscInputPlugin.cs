@@ -1,53 +1,39 @@
-using SharpOSC; // would rather use OscCore, but there is a zero-tolerance ban on System.IO and OscCore uses System.IO.MemoryStream
+using OscCore;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Warudo.Core.Attributes;
 using Warudo.Core.Plugins;
 
-[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.2.0", Author = "Barinzaya", Description = "Adds an On OSC Message node.",
+[PluginType(Id = "com.barinzaya.oscinput", Name = "OSC Input", Version = "0.2.2", Author = "Barinzaya", Description = "Adds an On OSC Message node.",
     NodeTypes = new[] { typeof(OscInputNode) })]
 public class OscInputPlugin : Plugin {
     public const int OSC_SERVER_PORT = 19190;
 
-    private UDPListener oscListener;
-    private ConcurrentQueue<OscMessage> oscMessages = new();
+    private OscListener listener;
 
     public delegate void OscMessageHandler(OscMessage message);
     private Dictionary<string, HashSet<OscMessageHandler>> handlers = new();
 
     protected override void OnCreate() {
         base.OnCreate();
-        oscListener = new(OSC_SERVER_PORT, OnOscPacket);
+        listener = new(OSC_SERVER_PORT);
     }
 
     protected override void OnDestroy() {
-        oscListener.Dispose();
+        listener.Dispose();
         base.OnDestroy();
     }
 
     public override void OnPreUpdate() {
         base.OnPreUpdate();
 
-        OscMessage message;
-        while(oscMessages.TryDequeue(out message)) {
+        while(listener.TryGetMessage(out var message)) {
             HashSet<OscMessageHandler> addressHandlers;
             if (handlers.TryGetValue(message.Address, out addressHandlers)) {
                 foreach (var handler in addressHandlers) {
                     handler(message);
                 }
             }
-        }
-    }
-
-    private void OnOscPacket(OscPacket packet) {
-        if (packet is OscBundle bundle) {
-            foreach(var m in bundle.Messages) {
-                oscMessages.Enqueue(m);
-            }
-        }
-
-        if (packet is OscMessage message) {
-            oscMessages.Enqueue(message);
         }
     }
 

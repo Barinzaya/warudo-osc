@@ -1,4 +1,4 @@
-using SharpOSC;
+using OscCore;
 using System;
 using Warudo.Core.Attributes;
 using Warudo.Core.Data;
@@ -34,11 +34,11 @@ public class OscInputNode : Node {
     }
 
     protected void OnReceivedOscMessage(OscMessage message) {
-        var numArgs = Math.Min(message.Arguments.Count, values.Length);
+        var numArgs = Math.Min(message.Count, values.Length);
 
         for (var i = 0; i < numArgs; i++) {
             var oldValue = values[i];
-            var newValue = message.Arguments[i];
+            var newValue = message[i];
 
             if (newValue.GetType() == oldValue.GetType()) {
                 // TODO: Type coercion?
