@@ -28,8 +28,8 @@ public class OscInputPlugin : Plugin {
     public override void OnPreUpdate() {
         base.OnPreUpdate();
 
-        while (listener.TryGetMessage(out var message)) {
-            DispatchMessage(message);
+        while (listener.TryGetPacket(out var packet)) {
+            DispatchPacket(packet);
         }
     }
 
@@ -56,6 +56,20 @@ public class OscInputPlugin : Plugin {
         }
 
         return result;
+    }
+
+    private void DispatchPacket(OscPacket packet) {
+        switch (packet) {
+            case OscBundle bundle:
+                for (var i = 0; i < bundle.Count; i++) {
+                    DispatchPacket(bundle[i]);
+                }
+                break;
+
+            case OscMessage message:
+                DispatchMessage(message);
+                break;
+        }
     }
 
     private void DispatchMessage(OscMessage message) {
