@@ -9,6 +9,8 @@ public class OscInputNode : Node {
     public new OscInputPlugin Plugin => base.Plugin as OscInputPlugin;
 
     [DataInput] public string Address = "/value";
+
+    [Label("Arguments")]
     [DataInput] public OscInputType[] ArgumentTypes = new OscInputType[0];
 
     [FlowOutput] public Continuation Exit;
@@ -18,8 +20,8 @@ public class OscInputNode : Node {
     protected override void OnCreate() {
         base.OnCreate();
 
-        ConfigureOutputs();
-        Watch(nameof(ArgumentTypes), () => ConfigureOutputs());
+        ConfigureOutputs(null, ArgumentTypes);
+        Watch<OscInputType[]>(nameof(ArgumentTypes), (oldArgs, newArgs) => ConfigureOutputs(oldArgs, newArgs));
 
         Plugin?.AddHandler(Address, OnReceivedOscMessage);
         Watch<string>(nameof(Address), (oldAddress, newAddress) => {
@@ -80,27 +82,33 @@ public class OscInputNode : Node {
         Graph?.InvokeFlow(this, "Exit");
     }
 
-    public void ConfigureOutputs() {
-        var count = ArgumentTypes.Length;
-        if (count != values?.Length) {
-            values = new object[count];
+    private void ConfigureOutputs(OscInputType[] oldArgs, OscInputType[] newArgs) {
+        var oldCount = oldArgs?.Length ?? 0;
+        var newCount = newArgs?.Length ?? 0;
+
+        if (newCount != oldCount) {
+            Array.Resize(ref values, newCount);
         }
 
-        DataOutputPortCollection.Clear();
+        for (var i = newCount; i < oldCount; i++) {
+            DataOutputPortCollection.RemovePort($"Arg{i+1}");
+        }
 
-        for (var i = 0; i < count; i++) {
-            var name = $"Arg{i+1}";
-            object value;
-
-            switch (ArgumentTypes[i]) {
-                case OscInputType.Boolean: value = false; break;
-                case OscInputType.Float: value = 0f; break;
-                case OscInputType.Int: value = 0; break;
-                case OscInputType.String: value = ""; break;
-
-                default: throw new ArgumentException("Unhandled input type", $"ArgumentTypes[{i}]");
+        for (var i = 0; i < newCount; i++) {
+            if (i < oldCount && oldArgs[i] == newArgs[i]) {
+                continue;
             }
 
+            var name = $"Arg{i+1}";
+            DataOutputPortCollection.RemovePort(name);
+
+            object value = ArgumentTypes[i] switch {
+                OscInputType.Boolean => false,
+                OscInputType.Float => 0f,
+                OscInputType.Int => 0,
+                OscInputType.String => "",
+                _ => throw new ArgumentException("Unhandled input type", $"ArgumentTypes[{i}]")
+            };
             values[i] = value;
 
             var j = i;
@@ -120,4 +128,3 @@ public enum OscInputType {
     Int,
     String,
 }
-
