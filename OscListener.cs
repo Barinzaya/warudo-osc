@@ -51,9 +51,9 @@ public class OscListener : IDisposable {
     }
 
     private void ReceivePacket(OscPacket packet) {
-        switch(packet) {
+        switch (packet) {
             case OscBundle bundle:
-                for(var i = 0; i < bundle.Count; i++) {
+                for (var i = 0; i < bundle.Count; i++) {
                     ReceivePacket(bundle[i]);
                 }
 

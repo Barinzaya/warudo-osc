@@ -28,7 +28,7 @@ public class OscInputPlugin : Plugin {
     public override void OnPreUpdate() {
         base.OnPreUpdate();
 
-        while(listener.TryGetMessage(out var message)) {
+        while (listener.TryGetMessage(out var message)) {
             DispatchMessage(message);
         }
     }
@@ -66,15 +66,15 @@ public class OscInputPlugin : Plugin {
             return;
         }
 
-        if(address.IsLiteral) {
+        if (address.IsLiteral) {
             HashSet<OscMessageHandler> addressHandlers;
-            if(handlers.TryGetValue(message.Address, out addressHandlers)) {
+            if (handlers.TryGetValue(message.Address, out addressHandlers)) {
                 foreach (var handler in addressHandlers) {
                     handler(message);
                 }
             }
         } else {
-            foreach(var pair in handlers) {
+            foreach (var pair in handlers) {
                 if (address.Match(pair.Key)) {
                     foreach (var handler in pair.Value) {
                         handler(message);

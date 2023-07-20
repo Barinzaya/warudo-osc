@@ -52,17 +52,17 @@ public class OscInputNode : Node {
 
     public void ConfigureOutputs() {
         var count = ArgumentTypes.Length;
-        if(count != values?.Length) {
+        if (count != values?.Length) {
             values = new object[count];
         }
 
         DataOutputPortCollection.Clear();
 
-        for(var i = 0; i < count; i++) {
+        for (var i = 0; i < count; i++) {
             var name = $"Arg{i+1}";
             object value;
 
-            switch(ArgumentTypes[i]) {
+            switch (ArgumentTypes[i]) {
                 case OscInputType.Boolean: value = false; break;
                 case OscInputType.Float: value = 0f; break;
                 case OscInputType.Int: value = 0; break;
