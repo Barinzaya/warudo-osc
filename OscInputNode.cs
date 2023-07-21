@@ -78,7 +78,6 @@ public class OscInputNode : Node {
             };
         }
 
-        Broadcast();
         Graph?.InvokeFlow(this, "Exit");
     }
 
